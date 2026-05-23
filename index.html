@@ -49,6 +49,9 @@
     <footer>Выбери верного героя. Нажми «Следующий» после ответа.<br>🔊 Если звук не работает, кликни по странице, затем нажми кнопку реплики.</footer>
 </div>
 <script>
+    // ⚠️ ЗАМЕНИТЕ ЭТУ ССЫЛКУ НА ВАШ URL ВЕБ-ПРИЛОЖЕНИЯ ИЗ GOOGLE APPS SCRIPT
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyp2Wjxj4_N3WHzepMP1oF3Vh6xy3bw3I0KWodqb6VvuJbetChjKAVMo6MOouNXr9nr/exec';   // <-- ВСТАВЬТЕ СЮДА
+
     const masterQuestions = [
         { quote: "С яростью в сердце - я возвращаюсь в бой", hero: "Ursa", soundFile: "sounds/ursa_rage.mp3" },
         { quote: "Звёздный свет", hero: "Luna", soundFile: "sounds/luna_night.mp3" },
@@ -79,42 +82,36 @@
         { quote: "Золото для короны", hero: "Queen of Pain", soundFile: "sounds/qop_gold.mp3" }
     ];
 
-    let shuffledQuestions = [], currentQuestionIndex = 0, currentQuestionObj = null, score = 0, answered = false, currentCorrectHero = "", gameFinished = false;
-    const quoteDisplay = document.getElementById("quoteDisplay"), buttonsContainer = document.getElementById("buttonsContainer"), scoreSpan = document.getElementById("scoreValue"), totalSpan = document.getElementById("totalCount"), messageArea = document.getElementById("messageArea"), nextButton = document.getElementById("nextButton"), playSoundBtn = document.getElementById("playSoundBtn"), heroSound = document.getElementById("heroSound"), restartBtn = document.getElementById("restartBtn"), volumeSlider = document.getElementById("volumeSlider"), volumeValue = document.getElementById("volumeValue"), totalCompletionsSpan = document.getElementById("totalCompletions");
+    let shuffledQuestions = [], currentIndex = 0, currentQ = null, score = 0, answered = false, correctHero = "", gameFinished = false;
+    const qDisp = document.getElementById("quoteDisplay"), btns = document.getElementById("buttonsContainer"), scoreSpan = document.getElementById("scoreValue"), totalSpan = document.getElementById("totalCount"), msg = document.getElementById("messageArea"), nextBtn = document.getElementById("nextButton"), playBtn = document.getElementById("playSoundBtn"), snd = document.getElementById("heroSound"), restart = document.getElementById("restartBtn"), volSlider = document.getElementById("volumeSlider"), volVal = document.getElementById("volumeValue"), totalSpanCounter = document.getElementById("totalCompletions");
 
-    const COUNTER_KEY = "dota_quiz_completions";
     async function fetchTotalCompletions() {
         try {
-            const response = await fetch(`https://api.visitorcount.com/get/${COUNTER_KEY}`);
-            if (response.ok) {
-                const data = await response.json();
-                totalCompletionsSpan.textContent = data.count;
-            } else totalCompletionsSpan.textContent = "0";
-        } catch (e) { totalCompletionsSpan.textContent = "?"; }
+            const res = await fetch(API_URL);
+            if (res.ok) { const data = await res.json(); totalSpanCounter.textContent = data.count; }
+            else totalSpanCounter.textContent = "?";
+        } catch(e) { totalSpanCounter.textContent = "?"; }
     }
     async function incrementTotalCompletions() {
         try {
-            const response = await fetch(`https://api.visitorcount.com/hit/${COUNTER_KEY}`, { method: "POST" });
-            if (response.ok) {
-                const data = await response.json();
-                totalCompletionsSpan.textContent = data.count;
-            }
-        } catch (e) { console.warn("Счётчик не обновлён"); }
+            const res = await fetch(API_URL, { method: 'POST' });
+            if (res.ok) { const data = await res.json(); totalSpanCounter.textContent = data.count; }
+        } catch(e) { console.warn("Счётчик не обновлён"); }
     }
 
-    heroSound.volume = volumeSlider.value; volumeValue.textContent = Math.round(volumeSlider.value * 100) + "%";
-    volumeSlider.addEventListener("input", (e) => { let v = parseFloat(e.target.value); heroSound.volume = v; volumeValue.textContent = Math.round(v * 100) + "%"; });
-    function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
-    function initGame() { shuffledQuestions = shuffleArray([...masterQuestions]); currentQuestionIndex = 0; score = 0; answered = false; gameFinished = false; scoreSpan.textContent = "0"; totalSpan.textContent = shuffledQuestions.length; nextButton.disabled = false; nextButton.style.opacity = "1"; messageArea.textContent = ""; heroSound.src = ""; playSoundBtn.disabled = true; loadQuestion(); }
-    function getRandomOptions(correctHero) { const allHeroes = [...new Set(masterQuestions.map(q => q.hero))]; let others = allHeroes.filter(h => h !== correctHero); for (let i = others.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [others[i], others[j]] = [others[j], others[i]]; } let options = [correctHero, ...others.slice(0, 3)]; for (let i = options.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [options[i], options[j]] = [options[j], options[i]]; } return options; }
-    function loadQuestion() { answered = false; messageArea.textContent = ""; if (currentQuestionIndex >= shuffledQuestions.length) { endGame(); return; } currentQuestionObj = shuffledQuestions[currentQuestionIndex]; currentCorrectHero = currentQuestionObj.hero; quoteDisplay.textContent = `«${currentQuestionObj.quote}»`; if (currentQuestionObj.soundFile && currentQuestionObj.soundFile.trim() !== "") { playSoundBtn.disabled = false; playSoundBtn.textContent = "🔊 Прослушать реплику"; } else { playSoundBtn.disabled = true; playSoundBtn.textContent = "🔇 Реплика недоступна"; } const opts = getRandomOptions(currentCorrectHero); buttonsContainer.innerHTML = ""; for (let h of opts) { let btn = document.createElement("button"); btn.textContent = h; btn.classList.add("hero-btn"); btn.addEventListener("click", () => checkAnswer(h)); buttonsContainer.appendChild(btn); } }
-    function checkAnswer(selected) { if (answered) { messageArea.textContent = "Ты уже ответил! Жми «Следующий»"; return; } answered = true; if (selected === currentCorrectHero) { score++; scoreSpan.textContent = score; messageArea.innerHTML = "✅ Правильно! +1 очко"; messageArea.style.color = "#8bc34a"; } else { messageArea.innerHTML = `❌ Неправильно. Правильный ответ: ${currentCorrectHero}`; messageArea.style.color = "#ff8a7a"; } document.querySelectorAll(".hero-btn").forEach(btn => { btn.disabled = true; if (btn.textContent === currentCorrectHero) btn.style.background = "#2e7d32"; else if (btn.textContent === selected && selected !== currentCorrectHero) btn.style.background = "#9a2c2c"; else btn.style.background = "#3a4e7a"; }); }
-    async function endGame() { if (gameFinished) return; gameFinished = true; quoteDisplay.textContent = "🎉 Игра завершена! 🎉"; buttonsContainer.innerHTML = ""; messageArea.innerHTML = `Твой финальный счёт: ${score} из ${shuffledQuestions.length}. Нажми «Заново», чтобы сыграть ещё раз.`; messageArea.style.color = "#ffd966"; nextButton.disabled = true; nextButton.style.opacity = "0.6"; playSoundBtn.disabled = true; heroSound.src = ""; await incrementTotalCompletions(); }
-    function nextQuestion() { if (gameFinished) return; if (!answered && currentQuestionIndex < shuffledQuestions.length) { messageArea.textContent = "Сначала ответь на вопрос!"; return; } if (currentQuestionIndex + 1 < shuffledQuestions.length) { currentQuestionIndex++; loadQuestion(); } else { endGame(); } }
-    playSoundBtn.addEventListener("click", () => { if (gameFinished) return; if (!currentQuestionObj?.soundFile) { messageArea.textContent = "❌ Звук не указан."; return; } const url = currentQuestionObj.soundFile; const full = url.startsWith('http') ? url : window.location.origin + '/' + url; const attempt = () => { if (heroSound.src === full || heroSound.src.endsWith(url)) { if (!heroSound.paused) return; heroSound.play().catch(e => handleError(e)); return; } heroSound.src = url; heroSound.load(); heroSound.addEventListener("canplaythrough", () => { heroSound.removeEventListener("canplaythrough", this); heroSound.play().catch(handleError); }); setTimeout(() => { if (heroSound.readyState >= 2) heroSound.play().catch(handleError); }, 300); }; const handleError = (e) => { if (e.name === 'NotAllowedError') { messageArea.innerHTML = "🔊 Нажмите в любом месте страницы, затем снова нажмите кнопку."; const unlock = () => { document.removeEventListener("click", unlock); attempt(); }; document.addEventListener("click", unlock); } else messageArea.textContent = "⚠️ Ошибка воспроизведения."; }; attempt(); });
-    restartBtn.addEventListener("click", () => initGame());
-    nextButton.addEventListener("click", nextQuestion);
-    fetchTotalCompletions().then(() => initGame());
+    snd.volume = volSlider.value; volVal.textContent = Math.round(volSlider.value*100)+"%";
+    volSlider.oninput = (e) => { let v = parseFloat(e.target.value); snd.volume = v; volVal.textContent = Math.round(v*100)+"%"; };
+    function shuffle(arr) { for(let i = arr.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+    function init() { shuffledQuestions = shuffle([...masterQuestions]); currentIndex = 0; score = 0; answered = false; gameFinished = false; scoreSpan.textContent = "0"; totalSpan.textContent = shuffledQuestions.length; nextBtn.disabled = false; nextBtn.style.opacity = "1"; msg.textContent = ""; snd.src = ""; playBtn.disabled = true; loadQuestion(); }
+    function randomOptions(correct) { let all = [...new Set(masterQuestions.map(q=>q.hero))]; let others = all.filter(h=>h !== correct); for(let i=others.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [others[i], others[j]] = [others[j], others[i]]; } let opts = [correct, ...others.slice(0,3)]; for(let i=opts.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [opts[i], opts[j]] = [opts[j], opts[i]]; } return opts; }
+    function loadQuestion() { answered = false; msg.textContent = ""; if(currentIndex >= shuffledQuestions.length){ endGame(); return; } currentQ = shuffledQuestions[currentIndex]; correctHero = currentQ.hero; qDisp.textContent = `«${currentQ.quote}»`; if(currentQ.soundFile && currentQ.soundFile.trim()){ playBtn.disabled = false; playBtn.textContent = "🔊 Прослушать реплику"; } else { playBtn.disabled = true; playBtn.textContent = "🔇 Реплика недоступна"; } const opts = randomOptions(correctHero); btns.innerHTML = ""; for(let h of opts){ let b = document.createElement("button"); b.textContent = h; b.classList.add("hero-btn"); b.onclick = () => checkAnswer(h); btns.appendChild(b); } }
+    function checkAnswer(selected){ if(answered){ msg.textContent = "Ты уже ответил! Жми «Следующий»"; return; } answered = true; if(selected === correctHero){ score++; scoreSpan.textContent = score; msg.innerHTML = "✅ Правильно! +1 очко"; msg.style.color = "#8bc34a"; } else { msg.innerHTML = `❌ Неправильно. Правильный ответ: ${correctHero}`; msg.style.color = "#ff8a7a"; } document.querySelectorAll(".hero-btn").forEach(btn=>{ btn.disabled = true; if(btn.textContent === correctHero) btn.style.background = "#2e7d32"; else if(btn.textContent === selected && selected !== correctHero) btn.style.background = "#9a2c2c"; else btn.style.background = "#3a4e7a"; }); }
+    function endGame(){ if(gameFinished) return; gameFinished = true; qDisp.textContent = "🎉 Игра завершена! 🎉"; btns.innerHTML = ""; msg.innerHTML = `Твой финальный счёт: ${score} из ${shuffledQuestions.length}. Нажми «Заново», чтобы сыграть ещё раз.`; msg.style.color = "#ffd966"; nextBtn.disabled = true; nextBtn.style.opacity = "0.6"; playBtn.disabled = true; snd.src = ""; incrementTotalCompletions(); }
+    function next(){ if(gameFinished) return; if(!answered && currentIndex < shuffledQuestions.length){ msg.textContent = "Сначала ответь на вопрос!"; return; } if(currentIndex+1 < shuffledQuestions.length){ currentIndex++; loadQuestion(); } else { endGame(); } }
+    playBtn.onclick = () => { if(gameFinished) return; if(!currentQ?.soundFile){ msg.textContent = "❌ Звук не указан."; return; } const url = currentQ.soundFile, full = url.startsWith('http')?url:window.location.origin+'/'+url; const attempt = () => { if(snd.src === full || snd.src.endsWith(url)){ if(!snd.paused) return; snd.play().catch(e=>handleError(e)); return; } snd.src = url; snd.load(); let onCan = () => { snd.removeEventListener("canplaythrough", onCan); snd.play().catch(handleError); }; snd.addEventListener("canplaythrough", onCan); setTimeout(()=>{ if(snd.readyState >= 2) snd.play().catch(handleError); },300); }; const handleError = (e) => { if(e.name === 'NotAllowedError'){ msg.innerHTML = "🔊 Нажмите в любом месте страницы, затем снова нажмите кнопку."; const unlock = () => { document.removeEventListener("click", unlock); attempt(); }; document.addEventListener("click", unlock); } else msg.textContent = "⚠️ Ошибка воспроизведения."; }; attempt(); };
+    restart.onclick = () => init();
+    nextBtn.onclick = next;
+    fetchTotalCompletions().then(() => init());
 </script>
 </body>
 </html>
