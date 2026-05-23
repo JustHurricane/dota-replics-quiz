@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Dota 2: Угадай героя — с общим счётчиком</title>
+    <title>Dota 2: Угадай героя — общий счётчик</title>
     <style>
         * { box-sizing: border-box; user-select: none; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #eee; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
@@ -27,60 +27,27 @@
         .message { margin: 15px 0 5px; font-size: 1rem; height: 50px; color: #ffb347; font-weight: bold; }
         footer { font-size: 0.7rem; margin-top: 25px; color: #5a6e8a; }
         .restart-btn { background: #4a6a8a; margin-top: 10px; margin-left: 10px; }
-        .total-counter {
-            display: inline-block;
-            background: #0a0f1c;
-            padding: 6px 16px;
-            border-radius: 40px;
-            font-size: 0.85rem;
-            margin-top: 5px;
-            color: #ffd966;
-        }
-        @media (max-width: 500px) {
-            .quote-box { font-size: 1.2rem; }
-            button.hero-btn { font-size: 0.9rem; padding: 10px 12px; min-width: 120px; }
-            .game-container { padding: 20px 15px; }
-            .total-counter { font-size: 0.75rem; }
-        }
+        .total-counter { display: inline-block; background: #0a0f1c; padding: 6px 16px; border-radius: 40px; font-size: 0.85rem; margin-top: 5px; color: #ffd966; }
+        @media (max-width: 500px) { .quote-box { font-size: 1.2rem; } button.hero-btn { font-size: 0.9rem; padding: 10px 12px; min-width: 120px; } .game-container { padding: 20px 15px; } .total-counter { font-size: 0.75rem; } }
     </style>
 </head>
 <body>
 <div class="game-container">
     <h1>🎮 Dota 2: Угадай героя</h1>
     <div class="sub">По голосу и фразе узнай, кто это (вопросы в случайном порядке)</div>
-
     <div class="quote-box" id="quoteDisplay">Загрузка...</div>
-
     <div class="sound-container">
         <audio id="heroSound" preload="auto"></audio>
         <button id="playSoundBtn" class="sound-btn" disabled>🔊 Прослушать реплику</button>
-        <div class="volume-control">
-            <span>🔊 Громкость:</span>
-            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.7">
-            <span id="volumeValue">70%</span>
-        </div>
+        <div class="volume-control"><span>🔊 Громкость:</span><input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.7"><span id="volumeValue">70%</span></div>
     </div>
-
     <div class="options" id="buttonsContainer"></div>
-
-    <div class="score">🏆 Счёт: <span id="scoreValue">0</span> / <span id="totalCount">0</span>
-        <button id="restartBtn" class="sound-btn restart-btn" style="margin-left: 15px;">🔄 Заново</button>
-    </div>
-
-    <!-- Блок общего счётчика -->
-    <div style="text-align: center; margin: 10px 0 5px;">
-        <div class="total-counter">
-            🎯 Тест пройден <span id="totalCompletions">...</span> раз(а)
-        </div>
-    </div>
-
+    <div class="score">🏆 Счёт: <span id="scoreValue">0</span> / <span id="totalCount">0</span><button id="restartBtn" class="sound-btn restart-btn" style="margin-left: 15px;">🔄 Заново</button></div>
+    <div style="text-align: center; margin: 10px 0 5px;"><div class="total-counter">🎯 Тест пройден <span id="totalCompletions">...</span> раз(а)</div></div>
     <div class="message" id="messageArea"></div>
     <button class="next-btn" id="nextButton">➡ Следующий вопрос</button>
-    <footer>Выбери верного героя. Нажми «Следующий» после ответа.<br>
-        🔊 Если звук не работает, кликни по странице, затем нажми кнопку реплики.
-    </footer>
+    <footer>Выбери верного героя. Нажми «Следующий» после ответа.<br>🔊 Если звук не работает, кликни по странице, затем нажми кнопку реплики.</footer>
 </div>
-
 <script>
     // ---------- БАЗА ДАННЫХ (все возможные вопросы) ----------
     const masterQuestions = [
@@ -120,7 +87,7 @@
     let score = 0;
     let answered = false;
     let currentCorrectHero = "";
-    let gameFinished = false; // чтобы не увеличивать счётчик повторно
+    let gameFinished = false;
 
     // DOM элементы
     const quoteDisplay = document.getElementById("quoteDisplay");
@@ -136,39 +103,36 @@
     const volumeValue = document.getElementById("volumeValue");
     const totalCompletionsSpan = document.getElementById("totalCompletions");
 
-    // Уникальный ключ для счётчика (можешь изменить на свой)
-    const COUNTER_KEY = "my-dota-quiz-total-completions";
+    // Уникальный ключ для countapi.xyz
+    const COUNTER_KEY = "dota-quiz-completions";
 
-    // ---------- Функции счётчика ----------
-    // Получить текущее значение счётчика с сервера
+    // ---------- Функции счётчика (countapi.xyz) ----------
     async function fetchTotalCompletions() {
         try {
-            const response = await fetch(`https://api.counterapi.dev/v1/${COUNTER_KEY}/get`);
-            if (!response.ok) throw new Error("Ошибка загрузки счётчика");
-            const data = await response.json();
-            const count = data.count || 0;
-            totalCompletionsSpan.textContent = count;
-            return count;
-        } catch (error) {
-            console.error("Не удалось получить счётчик:", error);
+            const response = await fetch(`https://api.countapi.xyz/get/${COUNTER_KEY}`);
+            if (response.ok) {
+                const data = await response.json();
+                totalCompletionsSpan.textContent = data.value;
+            } else {
+                totalCompletionsSpan.textContent = "0";
+            }
+        } catch (e) {
+            console.warn("Не удалось получить счётчик:", e);
             totalCompletionsSpan.textContent = "?";
-            return 0;
         }
     }
 
-    // Увеличить счётчик на 1 и обновить отображение
     async function incrementTotalCompletions() {
         try {
-            const response = await fetch(`https://api.counterapi.dev/v1/${COUNTER_KEY}/up`, { method: "POST" });
-            if (!response.ok) throw new Error("Ошибка увеличения счётчика");
-            const data = await response.json();
-            const newCount = data.count;
-            totalCompletionsSpan.textContent = newCount;
-            return newCount;
-        } catch (error) {
-            console.error("Не удалось обновить счётчик:", error);
-            // Не показываем ошибку пользователю, чтобы не портить впечатление
-            return null;
+            const response = await fetch(`https://api.countapi.xyz/hit/${COUNTER_KEY}`);
+            if (response.ok) {
+                const data = await response.json();
+                totalCompletionsSpan.textContent = data.value;
+            } else {
+                console.warn("Ошибка при увеличении счётчика");
+            }
+        } catch (e) {
+            console.warn("Ошибка сети при обновлении счётчика:", e);
         }
     }
 
@@ -183,16 +147,15 @@
 
     // Перемешивание
     function shuffleArray(arr) {
-        const array = [...arr];
-        for (let i = array.length - 1; i > 0; i--) {
+        for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
+            [arr[i], arr[j]] = [arr[j], arr[i]];
         }
-        return array;
+        return arr;
     }
 
     function initGame() {
-        shuffledQuestions = shuffleArray(masterQuestions);
+        shuffledQuestions = shuffleArray([...masterQuestions]);
         currentQuestionIndex = 0;
         score = 0;
         answered = false;
@@ -208,16 +171,13 @@
     }
 
     function getRandomOptions(correctHero) {
-        let allHeroesSet = new Set();
-        for (let q of masterQuestions) allHeroesSet.add(q.hero);
-        let allHeroesList = Array.from(allHeroesSet);
-        let otherHeroes = allHeroesList.filter(h => h !== correctHero);
-        for (let i = otherHeroes.length - 1; i > 0; i--) {
+        const allHeroes = [...new Set(masterQuestions.map(q => q.hero))];
+        let others = allHeroes.filter(h => h !== correctHero);
+        for (let i = others.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [otherHeroes[i], otherHeroes[j]] = [otherHeroes[j], otherHeroes[i]];
+            [others[i], others[j]] = [others[j], others[i]];
         }
-        let wrongOptions = otherHeroes.slice(0, 3);
-        let options = [correctHero, ...wrongOptions];
+        let options = [correctHero, ...others.slice(0, 3)];
         for (let i = options.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [options[i], options[j]] = [options[j], options[i]];
@@ -284,7 +244,7 @@
     }
 
     async function endGame() {
-        if (gameFinished) return; // защита от двойного вызова
+        if (gameFinished) return;
         gameFinished = true;
 
         quoteDisplay.textContent = "🎉 Игра завершена! 🎉";
@@ -296,7 +256,7 @@
         playSoundBtn.disabled = true;
         heroSound.src = "";
 
-        // Увеличиваем глобальный счётчик прохождений
+        // Увеличиваем глобальный счётчик
         await incrementTotalCompletions();
     }
 
@@ -317,7 +277,7 @@
     // Обработчик кнопки прослушивания
     playSoundBtn.addEventListener("click", () => {
         if (gameFinished) return;
-        if (!currentQuestionObj || !currentQuestionObj.soundFile || currentQuestionObj.soundFile.trim() === "") {
+        if (!currentQuestionObj || !currentQuestionObj.soundFile) {
             messageArea.textContent = "❌ Звук для этой реплики не указан.";
             messageArea.style.color = "#ff8a7a";
             return;
@@ -328,25 +288,25 @@
         const attemptPlay = () => {
             if (heroSound.src === fullUrl || heroSound.src.endsWith(soundUrl)) {
                 if (!heroSound.paused) return;
-                heroSound.play().catch(e => handlePlayError(e));
+                heroSound.play().catch(e => handleError(e));
                 return;
             }
             heroSound.src = soundUrl;
             heroSound.load();
             const onCanPlay = () => {
                 heroSound.removeEventListener("canplaythrough", onCanPlay);
-                heroSound.play().catch(e => handlePlayError(e));
+                heroSound.play().catch(e => handleError(e));
             };
             heroSound.addEventListener("canplaythrough", onCanPlay);
             setTimeout(() => {
                 if (heroSound.readyState >= 2) {
                     heroSound.removeEventListener("canplaythrough", onCanPlay);
-                    heroSound.play().catch(e => handlePlayError(e));
+                    heroSound.play().catch(e => handleError(e));
                 }
             }, 300);
         };
 
-        const handlePlayError = (error) => {
+        const handleError = (error) => {
             console.warn("Ошибка воспроизведения:", error);
             if (error.name === 'NotAllowedError') {
                 messageArea.innerHTML = "🔊 Нажмите в любом месте страницы, чтобы активировать звук, затем нажмите кнопку снова.";
@@ -373,13 +333,8 @@
     });
     nextButton.addEventListener("click", nextQuestion);
 
-    // Загрузка начального значения счётчика при старте
-    fetchTotalCompletions().then(() => {
-        // Инициализируем игру только после загрузки счётчика (необязательно, но так аккуратнее)
-        initGame();
-    }).catch(() => {
-        initGame(); // в любом случае запускаем игру
-    });
+    // Запуск игры после получения счётчика
+    fetchTotalCompletions().then(() => initGame());
 </script>
 </body>
 </html>
