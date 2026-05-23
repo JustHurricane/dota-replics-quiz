@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Dota 2: Угадай героя — финальная версия</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #eee; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .game-container { background: #16213e; border-radius: 30px; padding: 25px 20px 30px; max-width: 650px; width: 100%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #0f3460; }
+        h1 { font-size: 1.8rem; margin-top: 0; margin-bottom: 10px; color: #ffd966; }
+        .sub { font-size: 0.9rem; color: #aaa; margin-bottom: 20px; }
+        .quote-box { background: #0f3460; padding: 25px 15px; border-radius: 25px; margin: 15px 0 15px; font-size: 1.5rem; font-style: italic; font-weight: 500; color: #f0f0f0; box-shadow: inset 0 0 5px #00000055, 0 5px 10px rgba(0,0,0,0.3); min-height: 120px; display: flex; align-items: center; justify-content: center; word-break: break-word; }
+        .sound-container { text-align: center; margin: 10px 0 15px; }
+        .sound-btn { background: #3a4e7a; border: none; color: white; font-size: 1rem; padding: 8px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s; font-weight: bold; }
+        .sound-btn:enabled { background: #4c6a9e; cursor: pointer; }
+        .sound-btn:enabled:active { transform: scale(0.97); }
+        .sound-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .volume-control { margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; }
+        .volume-control input { width: 120px; cursor: pointer; background: #2c3e66; height: 4px; border-radius: 5px; }
+        .options { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 20px 0; }
+        button.hero-btn { background: #2c3e66; border: none; color: white; font-size: 1.1rem; padding: 12px 20px; border-radius: 60px; width: calc(50% - 12px); min-width: 150px; cursor: pointer; transition: 0.2s; font-weight: bold; box-shadow: 0 3px 5px rgba(0,0,0,0.3); }
+        button.hero-btn:active { transform: scale(0.97); background: #1f2c44; }
+        .score { font-size: 1.3rem; margin: 20px 0 10px; background: #0a0f1c; display: inline-block; padding: 8px 20px; border-radius: 40px; }
+        .next-btn { background: #e2b714; color: #1e2a3a; border: none; font-size: 1.2rem; font-weight: bold; padding: 10px 30px; border-radius: 40px; cursor: pointer; margin-top: 15px; transition: 0.2s; box-shadow: 0 3px 5px black; }
+        .next-btn:active { transform: scale(0.96); background: #c99e10; }
+        .message { margin: 15px 0 5px; font-size: 1rem; height: 50px; color: #ffb347; font-weight: bold; }
+        footer { font-size: 0.7rem; margin-top: 25px; color: #5a6e8a; }
+        .restart-btn { background: #4a6a8a; margin-top: 10px; margin-left: 10px; }
+        @media (max-width: 500px) { .quote-box { font-size: 1.2rem; } button.hero-btn { font-size: 0.9rem; padding: 10px 12px; min-width: 120px; } .game-container { padding: 20px 15px; } }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <h1>🎮 Dota 2: Угадай героя</h1>
+    <div class="sub">По голосу и фразе узнай, кто это (вопросы в случайном порядке)</div>
+
+    <div class="quote-box" id="quoteDisplay">Загрузка...</div>
+
+    <div class="sound-container">
+        <audio id="heroSound" preload="auto"></audio>
+        <button id="playSoundBtn" class="sound-btn" disabled>🔊 Прослушать реплику</button>
+        <div class="volume-control">
+            <span>🔊 Громкость:</span>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.7">
+            <span id="volumeValue">70%</span>
+        </div>
+    </div>
+
+    <div class="options" id="buttonsContainer"></div>
+
+    <div class="score">🏆 Счёт: <span id="scoreValue">0</span> / <span id="totalCount">0</span>
+        <button id="restartBtn" class="sound-btn restart-btn" style="margin-left: 15px;">🔄 Заново</button>
+    </div>
+    <div class="message" id="messageArea"></div>
+    <button class="next-btn" id="nextButton">➡ Следующий вопрос</button>
+    <footer>Выбери верного героя. Нажми «Следующий» после ответа.<br>
+        🔊 Если звук не работает, нажми один раз на любую свободную область страницы, потом снова на кнопку реплики.
+    </footer>
+</div>
+
+<script>
+    // ---------- БАЗА ДАННЫХ (все возможные вопросы) ----------
+    const masterQuestions = [
+        { quote: "С яростью в сердце - я возвращаюсь в бой", hero: "Ursa", soundFile: "sounds/ursa_rage.mp3" },
+        { quote: "Звёздный свет", hero: "Luna", soundFile: "sounds/luna_night.mp3" },
+        { quote: "Смерти я не боюсь, но умирать не хотелось бы", hero: "Juggernaut", soundFile: "sounds/juggernaut_quote.mp3" },
+        { quote: "Не стоит верить своим глазам", hero: "Phantom Assassin", soundFile: "sounds/pa_death.mp3" },
+        { quote: "Священная тропа ведёт меня к уготованной судьбе.", hero: "Huskar", soundFile: "sounds/huskar_spear.mp3" },
+        { quote: "Любому понятно, что твоё время уже пришло", hero: "Riki", soundFile: "sounds/riki_invis.mp3" },
+        { quote: "Во имя света я способен на большее!", hero: "Sven", soundFile: "sounds/sven_fire.mp3" },
+        { quote: "Глупцы умирают, как тебе хорошо известно", hero: "Invoker", soundFile: "sounds/invoker_magic.mp3" },
+        { quote: "Каждую монетку берёг", hero: "Pudge", soundFile: "sounds/pudge_flesh.mp3" },
+        { quote: "Обжёгшись на вьюгу дуют", hero: "Crystal Maiden", soundFile: "sounds/cm_garden.mp3" },
+        { quote: "Пусть охота длится вечно", hero: "Tidehunter", soundFile: "sounds/tide_hunt.mp3" },
+        { quote: "Бах! Бум! Прямо в бешеную луну!", hero: "Tusk", soundFile: "sounds/tusk_kill.mp3" },
+        { quote: "Моя тень падёт на всё живое", hero: "Dazzle", soundFile: "sounds/dazzle_shadow.mp3" },
+        { quote: "Я сделала выводы", hero: "Broodmother", soundFile: "sounds/brood_vivod.mp3" },
+        { quote: "Как скажешь, начальник", hero: "Alchemist", soundFile: "sounds/alch_asyousay.mp3" },
+        { quote: "Да буду я достойна этих загадок", hero: "Templar Assasin", soundFile: "sounds/ta_zagadok.mp3" },
+        { quote: "Плевал я на всех сверху", hero: "Gyrocopter", soundFile: "sounds/gyro_pleval.mp3" },
+        { quote: "Чешуя прочнеет", hero: "Slardar", soundFile: "sounds/slar_harder.mp3" },
+        { quote: "Я требую чтобы в гримёрке меня лишь ждали самые свежие манго ", hero: "Storm Spirit", soundFile: "sounds/ss_mango.mp3" },
+        { quote: "Мой клинок остывает", hero: "Doom", soundFile: "sounds/doom_blade.mp3" },
+        { quote: "Поставьте мне памятник", hero: "Rubick", soundFile: "sounds/rubick_statue.mp3" },
+        { quote: "Один на один со смертью", hero: "Drow Ranger", soundFile: "sounds/drow_death.mp3" },
+        { quote: "Подойди ближе, если осмелишься", hero: "Ember Spirit", soundFile: "sounds/ember_closer.mp3" },
+        { quote: "Больно, наверное?", hero: "Lina", soundFile: "sounds/lina_hurt.mp3" },
+        { quote: "Тебя ждёт вечная ночь", hero: "Dragon Knight", soundFile: "sounds/dk_night.mp3" },
+        { quote: "Меня мчит попутный ветер", hero: "Disruptor", soundFile: "sounds/disruptor_wind.mp3" },
+        { quote: "Золото для короны", hero: "Queen of Pain", soundFile: "sounds/qop_gold.mp3" }
+    ];
+
+    // ---------- Игровые переменные ----------
+    let shuffledQuestions = [];
+    let currentQuestionIndex = 0;
+    let currentQuestionObj = null;
+    let score = 0;
+    let answered = false;
+    let currentCorrectHero = "";
+    let audioUnlocked = false;      // флаг, разрешён ли звук браузером
+
+    // DOM элементы
+    const quoteDisplay = document.getElementById("quoteDisplay");
+    const buttonsContainer = document.getElementById("buttonsContainer");
+    const scoreSpan = document.getElementById("scoreValue");
+    const totalSpan = document.getElementById("totalCount");
+    const messageArea = document.getElementById("messageArea");
+    const nextButton = document.getElementById("nextButton");
+    const playSoundBtn = document.getElementById("playSoundBtn");
+    const heroSound = document.getElementById("heroSound");
+    const restartBtn = document.getElementById("restartBtn");
+    const volumeSlider = document.getElementById("volumeSlider");
+    const volumeValue = document.getElementById("volumeValue");
+
+    // Громкость
+    heroSound.volume = volumeSlider.value;
+    volumeValue.textContent = Math.round(volumeSlider.value * 100) + "%";
+    volumeSlider.addEventListener("input", (e) => {
+        const vol = parseFloat(e.target.value);
+        heroSound.volume = vol;
+        volumeValue.textContent = Math.round(vol * 100) + "%";
+    });
+
+    // ---------- Вспомогательные функции ----------
+    function shuffleArray(arr) {
+        const array = [...arr];
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function initGame() {
+        shuffledQuestions = shuffleArray(masterQuestions);
+        currentQuestionIndex = 0;
+        score = 0;
+        answered = false;
+        scoreSpan.textContent = "0";
+        totalSpan.textContent = shuffledQuestions.length;
+        nextButton.disabled = false;
+        nextButton.style.opacity = "1";
+        messageArea.textContent = "";
+        heroSound.src = "";
+        // Кнопка будет активироваться в loadQuestion, если есть soundFile
+        playSoundBtn.disabled = true;
+        loadQuestion();
+    }
+
+    function getRandomOptions(correctHero) {
+        let allHeroesSet = new Set();
+        for (let q of masterQuestions) allHeroesSet.add(q.hero);
+        let allHeroesList = Array.from(allHeroesSet);
+        let otherHeroes = allHeroesList.filter(h => h !== correctHero);
+        for (let i = otherHeroes.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [otherHeroes[i], otherHeroes[j]] = [otherHeroes[j], otherHeroes[i]];
+        }
+        let wrongOptions = otherHeroes.slice(0, 3);
+        let options = [correctHero, ...wrongOptions];
+        for (let i = options.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [options[i], options[j]] = [options[j], options[i]];
+        }
+        return options;
+    }
+
+    function loadQuestion() {
+        answered = false;
+        messageArea.textContent = "";
+        if (currentQuestionIndex >= shuffledQuestions.length) {
+            endGame();
+            return;
+        }
+        currentQuestionObj = shuffledQuestions[currentQuestionIndex];
+        currentCorrectHero = currentQuestionObj.hero;
+        quoteDisplay.textContent = `«${currentQuestionObj.quote}»`;
+
+        // Активируем кнопку, если у героя есть звуковой файл
+        if (currentQuestionObj.soundFile && currentQuestionObj.soundFile.trim() !== "") {
+            playSoundBtn.disabled = false;
+            playSoundBtn.textContent = "🔊 Прослушать реплику";
+        } else {
+            playSoundBtn.disabled = true;
+            playSoundBtn.textContent = "🔇 Реплика недоступна";
+        }
+
+        const optionNames = getRandomOptions(currentCorrectHero);
+        buttonsContainer.innerHTML = "";
+        for (let heroName of optionNames) {
+            const btn = document.createElement("button");
+            btn.textContent = heroName;
+            btn.classList.add("hero-btn");
+            btn.addEventListener("click", () => checkAnswer(heroName));
+            buttonsContainer.appendChild(btn);
+        }
+    }
+
+    function checkAnswer(selectedHero) {
+        if (answered) {
+            messageArea.textContent = "Ты уже ответил! Жми «Следующий»";
+            return;
+        }
+        answered = true;
+        if (selectedHero === currentCorrectHero) {
+            score++;
+            scoreSpan.textContent = score;
+            messageArea.innerHTML = "✅ Правильно! +1 очко";
+            messageArea.style.color = "#8bc34a";
+        } else {
+            messageArea.innerHTML = `❌ Неправильно. Правильный ответ: ${currentCorrectHero}`;
+            messageArea.style.color = "#ff8a7a";
+        }
+        const allBtns = document.querySelectorAll(".hero-btn");
+        allBtns.forEach(btn => {
+            btn.disabled = true;
+            if (btn.textContent === currentCorrectHero) {
+                btn.style.background = "#2e7d32";
+            } else if (btn.textContent === selectedHero && btn.textContent !== currentCorrectHero) {
+                btn.style.background = "#9a2c2c";
+            } else {
+                btn.style.background = "#3a4e7a";
+            }
+        });
+    }
+
+    function endGame() {
+        quoteDisplay.textContent = "🎉 Игра завершена! 🎉";
+        buttonsContainer.innerHTML = "";
+        messageArea.innerHTML = `Твой финальный счёт: ${score} из ${shuffledQuestions.length}. Нажми «Заново», чтобы сыграть ещё раз.`;
+        messageArea.style.color = "#ffd966";
+        nextButton.disabled = true;
+        nextButton.style.opacity = "0.6";
+        playSoundBtn.disabled = true;
+        heroSound.src = "";
+    }
+
+    function nextQuestion() {
+        if (!answered && currentQuestionIndex < shuffledQuestions.length) {
+            messageArea.textContent = "Сначала ответь на вопрос!";
+            return;
+        }
+        if (currentQuestionIndex + 1 < shuffledQuestions.length) {
+            currentQuestionIndex++;
+            loadQuestion();
+        } else {
+            endGame();
+        }
+    }
+
+    // ---------- Обработчик кнопки "Прослушать реплику" (с умной разблокировкой) ----------
+    function playCurrentSound() {
+        if (!currentQuestionObj || !currentQuestionObj.soundFile || currentQuestionObj.soundFile.trim() === "") {
+            messageArea.textContent = "❌ Звук для этой реплики не указан.";
+            messageArea.style.color = "#ff8a7a";
+            return;
+        }
+        const soundUrl = currentQuestionObj.soundFile;
+        const fullUrl = soundUrl.startsWith('http') ? soundUrl : window.location.origin + '/' + soundUrl;
+
+        // Функция, которая реально пытается воспроизвести
+        const attemptPlay = () => {
+            // Если уже загружен тот же URL, просто играем
+            if (heroSound.src === fullUrl || heroSound.src.endsWith(soundUrl)) {
+                heroSound.play().catch(e => handlePlayError(e));
+                return;
+            }
+            // Иначе загружаем новый
+            heroSound.src = soundUrl;
+            heroSound.load();
+            const onCanPlay = () => {
+                heroSound.removeEventListener("canplaythrough", onCanPlay);
+                heroSound.play().catch(e => handlePlayError(e));
+            };
+            heroSound.addEventListener("canplaythrough", onCanPlay);
+            setTimeout(() => {
+                if (heroSound.readyState >= 2) {
+                    heroSound.removeEventListener("canplaythrough", onCanPlay);
+                    heroSound.play().catch(e => handlePlayError(e));
+                }
+            }, 300);
+        };
+
+        const handlePlayError = (error) => {
+            console.warn("Ошибка воспроизведения:", error);
+            if (error.name === 'NotAllowedError') {
+                messageArea.innerHTML = "🔊 Нажмите в любом месте страницы, чтобы активировать звук, затем нажмите кнопку снова.";
+                messageArea.style.color = "#ffb347";
+                // Добавляем временный обработчик на один клик по документу
+                const unlockHandler = () => {
+                    document.removeEventListener("click", unlockHandler);
+                    messageArea.textContent = "Повторите попытку воспроизведения...";
+                    attemptPlay(); // повторяем попытку
+                };
+                document.addEventListener("click", unlockHandler);
+            } else if (error.name === 'AbortError') {
+                messageArea.textContent = "⚠️ Воспроизведение прервано, попробуйте ещё раз.";
+                messageArea.style.color = "#ffb347";
+            } else {
+                messageArea.textContent = "⚠️ Не удалось воспроизвести звук. Возможно, файл повреждён.";
+                messageArea.style.color = "#ffb347";
+            }
+        };
+
+        attemptPlay();
+    }
+
+    playSoundBtn.addEventListener("click", playCurrentSound);
+    restartBtn.addEventListener("click", () => { initGame(); });
+    nextButton.addEventListener("click", nextQuestion);
+
+    // Старт
+    initGame();
+</script>
+</body>
+</html>
