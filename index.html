@@ -3,54 +3,264 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Dota 2: Угадай героя — общий счётчик</title>
+    <title>Dota 2: Угадай героя — статистика сбоку</title>
     <style>
         * { box-sizing: border-box; user-select: none; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #eee; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .game-container { background: #16213e; border-radius: 30px; padding: 25px 20px 30px; max-width: 650px; width: 100%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #0f3460; }
-        h1 { font-size: 1.8rem; margin-top: 0; margin-bottom: 10px; color: #ffd966; }
-        .sub { font-size: 0.9rem; color: #aaa; margin-bottom: 20px; }
-        .quote-box { background: #0f3460; padding: 25px 15px; border-radius: 25px; margin: 15px 0 15px; font-size: 1.5rem; font-style: italic; font-weight: 500; color: #f0f0f0; box-shadow: inset 0 0 5px #00000055, 0 5px 10px rgba(0,0,0,0.3); min-height: 120px; display: flex; align-items: center; justify-content: center; word-break: break-word; }
-        .sound-container { text-align: center; margin: 10px 0 15px; }
-        .sound-btn { background: #3a4e7a; border: none; color: white; font-size: 1rem; padding: 8px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s; font-weight: bold; }
-        .sound-btn:enabled { background: #4c6a9e; cursor: pointer; }
-        .sound-btn:enabled:active { transform: scale(0.97); }
-        .sound-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .volume-control { margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; }
-        .volume-control input { width: 120px; cursor: pointer; background: #2c3e66; height: 4px; border-radius: 5px; }
-        .options { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 20px 0; }
-        button.hero-btn { background: #2c3e66; border: none; color: white; font-size: 1.1rem; padding: 12px 20px; border-radius: 60px; width: calc(50% - 12px); min-width: 150px; cursor: pointer; transition: 0.2s; font-weight: bold; box-shadow: 0 3px 5px rgba(0,0,0,0.3); }
-        button.hero-btn:active { transform: scale(0.97); background: #1f2c44; }
-        .score { font-size: 1.3rem; margin: 20px 0 10px; background: #0a0f1c; display: inline-block; padding: 8px 20px; border-radius: 40px; }
-        .next-btn { background: #e2b714; color: #1e2a3a; border: none; font-size: 1.2rem; font-weight: bold; padding: 10px 30px; border-radius: 40px; cursor: pointer; margin-top: 15px; transition: 0.2s; box-shadow: 0 3px 5px black; }
-        .next-btn:active { transform: scale(0.96); background: #c99e10; }
-        .message { margin: 15px 0 5px; font-size: 1rem; height: 50px; color: #ffb347; font-weight: bold; }
-        footer { font-size: 0.7rem; margin-top: 25px; color: #5a6e8a; }
-        .restart-btn { background: #4a6a8a; margin-top: 10px; margin-left: 10px; }
-        .total-counter { display: inline-block; background: #0a0f1c; padding: 6px 16px; border-radius: 40px; font-size: 0.85rem; margin-top: 5px; color: #ffd966; }
-        @media (max-width: 500px) { .quote-box { font-size: 1.2rem; } button.hero-btn { font-size: 0.9rem; padding: 10px 12px; min-width: 120px; } .game-container { padding: 20px 15px; } .total-counter { font-size: 0.75rem; } }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        /* Главный контейнер с двумя колонками */
+        .dashboard {
+            display: flex;
+            gap: 25px;
+            max-width: 1100px;
+            width: 100%;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        /* Левая панель со статистикой */
+        .stats-panel {
+            background: #0f0f1f;
+            border-radius: 30px;
+            padding: 20px;
+            width: 240px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid #2c3e66;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+        }
+        .stats-panel h3 {
+            margin-top: 0;
+            color: #ffd966;
+            font-size: 1.3rem;
+        }
+        .stat-item {
+            background: #16213e;
+            border-radius: 20px;
+            padding: 12px;
+            margin: 12px 0;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #ffd966;
+            word-break: break-word;
+        }
+        /* Основной контейнер игры (остался почти без изменений) */
+        .game-container {
+            background: #16213e;
+            border-radius: 30px;
+            padding: 25px 20px 30px;
+            flex: 1;
+            min-width: 280px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid #0f3460;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #ffd966;
+        }
+        .sub {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+        .quote-box {
+            background: #0f3460;
+            padding: 25px 15px;
+            border-radius: 25px;
+            margin: 15px 0 15px;
+            font-size: 1.5rem;
+            font-style: italic;
+            font-weight: 500;
+            color: #f0f0f0;
+            box-shadow: inset 0 0 5px #00000055, 0 5px 10px rgba(0,0,0,0.3);
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-break: break-word;
+        }
+        .sound-container {
+            text-align: center;
+            margin: 10px 0 15px;
+        }
+        .sound-btn {
+            background: #3a4e7a;
+            border: none;
+            color: white;
+            font-size: 1rem;
+            padding: 8px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: bold;
+        }
+        .sound-btn:enabled {
+            background: #4c6a9e;
+            cursor: pointer;
+        }
+        .sound-btn:enabled:active {
+            transform: scale(0.97);
+        }
+        .sound-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .volume-control {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+        .volume-control input {
+            width: 120px;
+            cursor: pointer;
+            background: #2c3e66;
+            height: 4px;
+            border-radius: 5px;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        button.hero-btn {
+            background: #2c3e66;
+            border: none;
+            color: white;
+            font-size: 1.1rem;
+            padding: 12px 20px;
+            border-radius: 60px;
+            width: calc(50% - 12px);
+            min-width: 150px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: bold;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+        }
+        button.hero-btn:active {
+            transform: scale(0.97);
+            background: #1f2c44;
+        }
+        .score {
+            font-size: 1.3rem;
+            margin: 20px 0 10px;
+            background: #0a0f1c;
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 40px;
+        }
+        .next-btn {
+            background: #e2b714;
+            color: #1e2a3a;
+            border: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 10px 30px;
+            border-radius: 40px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: 0.2s;
+            box-shadow: 0 3px 5px black;
+        }
+        .next-btn:active {
+            transform: scale(0.96);
+            background: #c99e10;
+        }
+        .message {
+            margin: 15px 0 5px;
+            font-size: 1rem;
+            height: 50px;
+            color: #ffb347;
+            font-weight: bold;
+        }
+        footer {
+            font-size: 0.7rem;
+            margin-top: 25px;
+            color: #5a6e8a;
+        }
+        .restart-btn {
+            background: #4a6a8a;
+            margin-top: 10px;
+            margin-left: 10px;
+        }
+        @media (max-width: 800px) {
+            .dashboard {
+                flex-direction: column;
+                align-items: center;
+            }
+            .stats-panel {
+                width: 100%;
+                flex-direction: row;
+                justify-content: space-around;
+                flex-wrap: wrap;
+            }
+            .stats-panel .stat-item {
+                flex: 1;
+                margin: 5px;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="game-container">
-    <h1>🎮 Dota 2: Угадай героя</h1>
-    <div class="sub">По голосу и фразе узнай, кто это (вопросы в случайном порядке)</div>
-    <div class="quote-box" id="quoteDisplay">Загрузка...</div>
-    <div class="sound-container">
-        <audio id="heroSound" preload="auto"></audio>
-        <button id="playSoundBtn" class="sound-btn" disabled>🔊 Прослушать реплику</button>
-        <div class="volume-control"><span>🔊 Громкость:</span><input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.7"><span id="volumeValue">70%</span></div>
+<div class="dashboard">
+    <!-- Левая панель статистики -->
+    <div class="stats-panel">
+        <h3>📊 Статистика</h3>
+        <div class="stat-item">
+            <div class="stat-label">Всего пройдено</div>
+            <div class="stat-value" id="totalCompletions">...</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Последний раз</div>
+            <div class="stat-value" id="lastCompletionTime">—</div>
+        </div>
     </div>
-    <div class="options" id="buttonsContainer"></div>
-    <div class="score">🏆 Счёт: <span id="scoreValue">0</span> / <span id="totalCount">0</span><button id="restartBtn" class="sound-btn restart-btn" style="margin-left: 15px;">🔄 Заново</button></div>
-    <div style="text-align: center; margin: 10px 0 5px;"><div class="total-counter">🎯 Тест пройден <span id="totalCompletions">...</span> раз(а)</div></div>
-    <div class="message" id="messageArea"></div>
-    <button class="next-btn" id="nextButton">➡ Следующий вопрос</button>
-    <footer>Выбери верного героя. Нажми «Следующий» после ответа.<br>🔊 Если звук не работает, кликни по странице, затем нажми кнопку реплики.</footer>
+
+    <!-- Правая часть: игра -->
+    <div class="game-container">
+        <h1>🎮 Dota 2: Угадай героя</h1>
+        <div class="sub">По голосу и фразе узнай, кто это (вопросы в случайном порядке)</div>
+        <div class="quote-box" id="quoteDisplay">Загрузка...</div>
+        <div class="sound-container">
+            <audio id="heroSound" preload="auto"></audio>
+            <button id="playSoundBtn" class="sound-btn" disabled>🔊 Прослушать реплику</button>
+            <div class="volume-control"><span>🔊 Громкость:</span><input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.7"><span id="volumeValue">70%</span></div>
+        </div>
+        <div class="options" id="buttonsContainer"></div>
+        <div class="score">🏆 Счёт: <span id="scoreValue">0</span> / <span id="totalCount">0</span><button id="restartBtn" class="sound-btn restart-btn" style="margin-left: 15px;">🔄 Заново</button></div>
+        <div class="message" id="messageArea"></div>
+        <button class="next-btn" id="nextButton">➡ Следующий вопрос</button>
+        <footer>Выбери верного героя. Нажми «Следующий» после ответа.<br>🔊 Если звук не работает, кликни по странице, затем нажми кнопку реплики.</footer>
+    </div>
 </div>
+
 <script>
-    // ⚠️ ЗАМЕНИТЕ ЭТУ ССЫЛКУ НА ВАШ URL ВЕБ-ПРИЛОЖЕНИЯ ИЗ GOOGLE APPS SCRIPT
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyp2Wjxj4_N3WHzepMP1oF3Vh6xy3bw3I0KWodqb6VvuJbetChjKAVMo6MOouNXr9nr/exec';   // <-- ВСТАВЬТЕ СЮДА
+    // ⚠️ ЗАМЕНИТЕ НА ВАШ URL ИЗ GOOGLE APPS SCRIPT
+    const API_URL = 'ВАШ_URL_ВЕБ_ПРИЛОЖЕНИЯ';
 
     const masterQuestions = [
         { quote: "С яростью в сердце - я возвращаюсь в бой", hero: "Ursa", soundFile: "sounds/ursa_rage.mp3" },
@@ -83,20 +293,36 @@
     ];
 
     let shuffledQuestions = [], currentIndex = 0, currentQ = null, score = 0, answered = false, correctHero = "", gameFinished = false;
-    const qDisp = document.getElementById("quoteDisplay"), btns = document.getElementById("buttonsContainer"), scoreSpan = document.getElementById("scoreValue"), totalSpan = document.getElementById("totalCount"), msg = document.getElementById("messageArea"), nextBtn = document.getElementById("nextButton"), playBtn = document.getElementById("playSoundBtn"), snd = document.getElementById("heroSound"), restart = document.getElementById("restartBtn"), volSlider = document.getElementById("volumeSlider"), volVal = document.getElementById("volumeValue"), totalSpanCounter = document.getElementById("totalCompletions");
+    const qDisp = document.getElementById("quoteDisplay"), btns = document.getElementById("buttonsContainer"), scoreSpan = document.getElementById("scoreValue"), totalSpan = document.getElementById("totalCount"), msg = document.getElementById("messageArea"), nextBtn = document.getElementById("nextButton"), playBtn = document.getElementById("playSoundBtn"), snd = document.getElementById("heroSound"), restart = document.getElementById("restartBtn"), volSlider = document.getElementById("volumeSlider"), volVal = document.getElementById("volumeValue");
+    const totalSpanCounter = document.getElementById("totalCompletions");
+    const lastTimeSpan = document.getElementById("lastCompletionTime");
 
-    async function fetchTotalCompletions() {
+    async function fetchStats() {
         try {
             const res = await fetch(API_URL);
-            if (res.ok) { const data = await res.json(); totalSpanCounter.textContent = data.count; }
-            else totalSpanCounter.textContent = "?";
-        } catch(e) { totalSpanCounter.textContent = "?"; }
+            if (res.ok) {
+                const data = await res.json();
+                totalSpanCounter.textContent = data.count;
+                lastTimeSpan.textContent = data.last || "ещё ни разу";
+            } else {
+                totalSpanCounter.textContent = "?";
+                lastTimeSpan.textContent = "ошибка";
+            }
+        } catch(e) {
+            totalSpanCounter.textContent = "?";
+            lastTimeSpan.textContent = "нет связи";
+        }
     }
-    async function incrementTotalCompletions() {
+
+    async function incrementStats() {
         try {
             const res = await fetch(API_URL, { method: 'POST' });
-            if (res.ok) { const data = await res.json(); totalSpanCounter.textContent = data.count; }
-        } catch(e) { console.warn("Счётчик не обновлён"); }
+            if (res.ok) {
+                const data = await res.json();
+                totalSpanCounter.textContent = data.count;
+                lastTimeSpan.textContent = data.last;
+            }
+        } catch(e) { console.warn("Не обновлено"); }
     }
 
     snd.volume = volSlider.value; volVal.textContent = Math.round(volSlider.value*100)+"%";
@@ -106,12 +332,12 @@
     function randomOptions(correct) { let all = [...new Set(masterQuestions.map(q=>q.hero))]; let others = all.filter(h=>h !== correct); for(let i=others.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [others[i], others[j]] = [others[j], others[i]]; } let opts = [correct, ...others.slice(0,3)]; for(let i=opts.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [opts[i], opts[j]] = [opts[j], opts[i]]; } return opts; }
     function loadQuestion() { answered = false; msg.textContent = ""; if(currentIndex >= shuffledQuestions.length){ endGame(); return; } currentQ = shuffledQuestions[currentIndex]; correctHero = currentQ.hero; qDisp.textContent = `«${currentQ.quote}»`; if(currentQ.soundFile && currentQ.soundFile.trim()){ playBtn.disabled = false; playBtn.textContent = "🔊 Прослушать реплику"; } else { playBtn.disabled = true; playBtn.textContent = "🔇 Реплика недоступна"; } const opts = randomOptions(correctHero); btns.innerHTML = ""; for(let h of opts){ let b = document.createElement("button"); b.textContent = h; b.classList.add("hero-btn"); b.onclick = () => checkAnswer(h); btns.appendChild(b); } }
     function checkAnswer(selected){ if(answered){ msg.textContent = "Ты уже ответил! Жми «Следующий»"; return; } answered = true; if(selected === correctHero){ score++; scoreSpan.textContent = score; msg.innerHTML = "✅ Правильно! +1 очко"; msg.style.color = "#8bc34a"; } else { msg.innerHTML = `❌ Неправильно. Правильный ответ: ${correctHero}`; msg.style.color = "#ff8a7a"; } document.querySelectorAll(".hero-btn").forEach(btn=>{ btn.disabled = true; if(btn.textContent === correctHero) btn.style.background = "#2e7d32"; else if(btn.textContent === selected && selected !== correctHero) btn.style.background = "#9a2c2c"; else btn.style.background = "#3a4e7a"; }); }
-    function endGame(){ if(gameFinished) return; gameFinished = true; qDisp.textContent = "🎉 Игра завершена! 🎉"; btns.innerHTML = ""; msg.innerHTML = `Твой финальный счёт: ${score} из ${shuffledQuestions.length}. Нажми «Заново», чтобы сыграть ещё раз.`; msg.style.color = "#ffd966"; nextBtn.disabled = true; nextBtn.style.opacity = "0.6"; playBtn.disabled = true; snd.src = ""; incrementTotalCompletions(); }
+    function endGame(){ if(gameFinished) return; gameFinished = true; qDisp.textContent = "🎉 Игра завершена! 🎉"; btns.innerHTML = ""; msg.innerHTML = `Твой финальный счёт: ${score} из ${shuffledQuestions.length}. Нажми «Заново», чтобы сыграть ещё раз.`; msg.style.color = "#ffd966"; nextBtn.disabled = true; nextBtn.style.opacity = "0.6"; playBtn.disabled = true; snd.src = ""; incrementStats(); }
     function next(){ if(gameFinished) return; if(!answered && currentIndex < shuffledQuestions.length){ msg.textContent = "Сначала ответь на вопрос!"; return; } if(currentIndex+1 < shuffledQuestions.length){ currentIndex++; loadQuestion(); } else { endGame(); } }
     playBtn.onclick = () => { if(gameFinished) return; if(!currentQ?.soundFile){ msg.textContent = "❌ Звук не указан."; return; } const url = currentQ.soundFile, full = url.startsWith('http')?url:window.location.origin+'/'+url; const attempt = () => { if(snd.src === full || snd.src.endsWith(url)){ if(!snd.paused) return; snd.play().catch(e=>handleError(e)); return; } snd.src = url; snd.load(); let onCan = () => { snd.removeEventListener("canplaythrough", onCan); snd.play().catch(handleError); }; snd.addEventListener("canplaythrough", onCan); setTimeout(()=>{ if(snd.readyState >= 2) snd.play().catch(handleError); },300); }; const handleError = (e) => { if(e.name === 'NotAllowedError'){ msg.innerHTML = "🔊 Нажмите в любом месте страницы, затем снова нажмите кнопку."; const unlock = () => { document.removeEventListener("click", unlock); attempt(); }; document.addEventListener("click", unlock); } else msg.textContent = "⚠️ Ошибка воспроизведения."; }; attempt(); };
     restart.onclick = () => init();
     nextBtn.onclick = next;
-    fetchTotalCompletions().then(() => init());
+    fetchStats().then(() => init());
 </script>
 </body>
 </html>
